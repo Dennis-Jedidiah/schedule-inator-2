@@ -1,5 +1,7 @@
+from datetime import datetime
 import re
 
+## REGEX PATTERNS
 COURSENAMEMATCH = "([A-z\.\,\-\& ]+)(?=\n[0-9A-z ]+Section [0-9]+)"
 COURSECODEMATCH = "([0-9A-z ]+)Section [0-9]+"
 SECTIONMATCH = "(Section [0-9]+)"
@@ -15,7 +17,32 @@ COURSEENDTIME = "-([0-9: ]+[PAM]{2})"
 COURSEINSTRUCTOR = "Instructor: ([A-z\,\-\|\& ]+)"
 COURSEBUILDING = "Building: ([A-z\,\-\|\& ]+)"
 COURSEROOM = "Room: ([A-z\,\-\|\& \d]+)"
+DAYSDICTIONARY = {
+    "Monday": "MO",
+    "Tuesday": "TU",
+    "Wednesday": "WE",
+    "Thursday": "TH",
+    "Friday": "FR",
+    "Saturday": "SA",
+    "Sunday": "SU",
+    "None"  : "MO"  # Default to Monday if no days are found
+}
 
+## CLASSES
+class Course:
+    def __init__(self, name="", code="", section="", crn="", start_date="", end_date="", location="", type_="", method="", days=None, start_times=None, end_times=None, instructor="", building="", room=""):
+        self.name = type_ + " - " + name
+        self.code = code
+        self.section = section
+        self.crn = crn
+        self.start_date = start_date
+        self.end_date = end_date
+        self.location = location + " " + building + " " + room
+        self.method = method
+        self.days = [DAYSDICTIONARY[day] for day in days]
+        self.start_times = start_times if start_times is not None else []
+        self.end_times = end_times if end_times is not None else []
+        self.instructor = instructor
 
 ## FUNCTIONS
 def clean_input(text: str) -> str:
@@ -94,3 +121,8 @@ def extract_room(text: str) -> str:
     if match:
         return match.group(1).strip()
     return "Room Not Found"
+def parse_date_time(date_string: str, time_string: str) -> datetime:
+    if not time_string:
+        time_string = "12:00 AM"
+    combined_string = f"{date_string} {time_string}"
+    return datetime.strptime(combined_string, "%m/%d/%Y %I:%M %p")

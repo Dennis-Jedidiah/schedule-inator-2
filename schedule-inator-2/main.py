@@ -1,23 +1,23 @@
-import sys
-import re
 import Constants
+import sys
+from icalendar import Calendar, Event
+from datetime import datetime
 
-# if len(sys.argv) < 2:
-#     raise Exception("No filename provided")
+if len(sys.argv) < 2:
+    raise Exception("No filename provided")
 
 # Takes the input file's name as an argument.
-# fileName = sys.argv[1]
-fileName = "my_schedule.txt"
-# for testing purposes. testing out the file cleaning process.
+fileName = sys.argv[1]
+
 originalFile = open(fileName, 'r')
-data = originalFile.read()
-cleanedData = Constants.clean_input(data)
+cleanedData = Constants.clean_input(originalFile.read())
 currentCourse = ""
+listOfCourses = []
+
+# This loop goes through each line of the cleaned data and extracts course information.
+# and puts it into a list of Course objects.
 for line in cleanedData.splitlines():
     if "END_OF_COURSE" in line:
-        # print(f"Current Course Data:\n{currentCourse}")
-        print("----- End of Course -----")
-
         course_name = Constants.extract_course_name(currentCourse)
         course_code = Constants.extract_course_code(currentCourse)
         section = Constants.extract_section(currentCourse)
@@ -33,32 +33,42 @@ for line in cleanedData.splitlines():
         instructor = Constants.extract_instructor(currentCourse)
         building = Constants.extract_building(currentCourse)
         room = Constants.extract_room(currentCourse)
-            # Print extracted details for verification
-        print(f"Course Name: {course_name}")
-        print(f"Course Code: {course_code}")
-        print(f"Section: {section}")
-        print(f"CRN: {crn}")
-        print(f"Start Date: {start_date}")
-        print(f"End Date: {end_date}")
-        print(f"Location: {location}")
-        print(f"Type: {type_}")
-        print(f"Method: {method}")
-        print(f"Day: {day}")
-        print(f"Start Time: {start_time}")
-        print(f"End Time: {end_time}")
-        print(f"Building: {building}")
-        print(f"Room: {room}")
-        print(f"Instructor: {instructor}")
-        print("------------------------\n")
+        listOfCourses.append(Constants.Course(
+            name=course_name,
+            code=course_code,
+            section=section,
+            crn=crn,
+            start_date=start_date,
+            end_date=end_date,
+            location=location,
+            type_=type_,
+            method=method,
+            days=day,
+            start_times=start_time,
+            end_times=end_time,
+            instructor=instructor,
+            building=building,
+            room=room
+        ))
         currentCourse = ""
     else:
         currentCourse += line + "\n"
 originalFile.close()
-# This loop reads through the input file line by line and recognizes the end of a course description.
-# with open(fileName, 'r') as file:
-#     course_number = 1
-#     for line in file:
-#         if "CRN" in line:
-#             course_number += 1
 
-# print(course_number)
+# This part creates the .ics file using the list of Course objects.
+cal = Calendar()
+cal.add('prodid', '-//Schedule-inator//Dennis_Jedidiah//')
+cal.add('version', '2.0')
+for course in listOfCourses:
+    for i in range(len(course.days)):
+        event = Event()
+        event.add('summary', f"{course.name}")
+        event.add('location', course.location)
+        event.add('description', f"Instructor: {course.instructor} \n Course Code: {course.code} \n Method: {course.method} \n CRN: {course.crn}")
+        event.add('dtstart', Constants.parse_date_time(course.start_date, course.start_times[i] if course.start_times else ""))
+        event.add('dtend', Constants.parse_date_time(course.start_date, course.end_times[i] if course.end_times else ""))
+        event.add('rrule', {'freq': 'weekly', 'byday': (course.days[i])if course.days else "Monday", 'until': Constants.parse_date_time(course.end_date, course.end_times[i] if course.end_times else "")})
+        cal.add_component(event)
+
+with open("class_schedule.ics", "wb") as f:
+    f.write(cal.to_ical())
